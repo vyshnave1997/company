@@ -34,7 +34,8 @@ export default function CompanyManagement() {
     companyMail: '',
     companyLocation: '',
     mailSent: 'Not Sent',
-    interview: 'No Idea'
+    interview: 'No Idea',
+    visitedOffice: 'No'
   });
 
   const showToast = (message, type = 'success') => {
@@ -184,7 +185,8 @@ export default function CompanyManagement() {
       companyMail: company.companyMail,
       companyLocation: company.companyLocation,
       mailSent: company.mailSent,
-      interview: company.interview || 'No Idea'
+      interview: company.interview || 'No Idea',
+      visitedOffice: company.visitedOffice || 'No'
     });
     setEditingId(company.id);
     setIsFormOpen(true);
@@ -215,7 +217,7 @@ export default function CompanyManagement() {
   };
 
   const exportToCSV = () => {
-    const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview'];
+    const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview', 'Visited Office'];
     const rows = filteredCompanies.map(c => [
       c.serialNo,
       c.companyName,
@@ -225,7 +227,8 @@ export default function CompanyManagement() {
       c.companyMail,
       c.companyLocation,
       c.mailSent,
-      c.interview || 'No Idea'
+      c.interview || 'No Idea',
+      c.visitedOffice || 'No'
     ]);
     
     const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -308,7 +311,7 @@ export default function CompanyManagement() {
   };
 
   const exportToExcel = () => {
-    const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview'];
+    const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview', 'Visited Office'];
     const rows = filteredCompanies.map(c => [
       c.serialNo,
       c.companyName,
@@ -318,7 +321,8 @@ export default function CompanyManagement() {
       c.companyMail,
       c.companyLocation,
       c.mailSent,
-      c.interview || 'No Idea'
+      c.interview || 'No Idea',
+      c.visitedOffice || 'No'
     ]);
 
     let html = '<html><head><meta charset="utf-8"><style>table {border-collapse: collapse; width: 100%;} th, td {border: 1px solid black; padding: 8px; text-align: left;} th {background-color: #4CAF50; color: white;}</style></head><body>';
@@ -341,7 +345,7 @@ export default function CompanyManagement() {
   };
 
   const exportToPDF = () => {
-    const headers = ['S.No', 'Company', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail', 'Interview'];
+    const headers = ['S.No', 'Company', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail', 'Interview', 'Visited'];
     const rows = filteredCompanies.map(c => [
       c.serialNo,
       c.companyName,
@@ -351,7 +355,8 @@ export default function CompanyManagement() {
       c.companyMail,
       c.companyLocation,
       c.mailSent,
-      c.interview || 'No Idea'
+      c.interview || 'No Idea',
+      c.visitedOffice || 'No'
     ]);
 
     let html = `<!DOCTYPE html>
@@ -414,7 +419,8 @@ export default function CompanyManagement() {
       companyMail: '',
       companyLocation: '',
       mailSent: 'Not Sent',
-      interview: 'No Idea'
+      interview: 'No Idea',
+      visitedOffice: 'No'
     });
     setIsFormOpen(false);
     setEditingId(null);
@@ -642,7 +648,7 @@ export default function CompanyManagement() {
               
               <button
                 onClick={loadCompanies}
-                className="px-4 py-3 bg-yellow-800 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-4 py-3 bg-orange-900 hover:bg-gray-200 rounded-lg transition-colors"
                 title="Refresh"
               >
                 <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
@@ -801,7 +807,7 @@ export default function CompanyManagement() {
                   >
                     <option value="">Select Location</option>
                     
-              <optgroup label="🏙️ Main Areas">
+        <optgroup label="🏙️ Main Areas">
                       <option value="Downtown Dubai">Downtown Dubai</option>
                       <option value="Dubai Marina">Dubai Marina</option>
                       <option value="Business Bay">Business Bay</option>
@@ -948,6 +954,18 @@ export default function CompanyManagement() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Visited Office</label>
+                  <select
+                    value={formData.visitedOffice}
+                    onChange={(e) => setFormData({...formData, visitedOffice: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors text-gray-900"
+                  >
+                    <option>No</option>
+                    <option>Yes</option>
+                  </select>
+                </div>
+
                 <div className="flex gap-3 pt-4">
                   <button
                     type="submit"
@@ -986,6 +1004,7 @@ export default function CompanyManagement() {
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Location</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Mail Status</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Interview</th>
+                  <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Visited</th>
                   <th className="px-4 py-4 text-center text-sm font-bold text-gray-700">Actions</th>
                 </tr>
               </thead>
@@ -1049,6 +1068,14 @@ export default function CompanyManagement() {
                          company.interview === 'Rejected' ? <XCircle size={14} /> : 
                          <XCircle size={14} />}
                         {company.interview || 'No Idea'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
+                        company.visitedOffice === 'Yes' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {company.visitedOffice === 'Yes' ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                        {company.visitedOffice || 'No'}
                       </span>
                     </td>
                     <td className="px-4 py-4">
@@ -1169,6 +1196,12 @@ export default function CompanyManagement() {
                    company.interview === 'Rejected' ? <XCircle size={14} /> : 
                    <XCircle size={14} />}
                   {company.interview || 'No Idea'}
+                </span>
+                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
+                  company.visitedOffice === 'Yes' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {company.visitedOffice === 'Yes' ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                  Visited: {company.visitedOffice || 'No'}
                 </span>
               </div>
 
