@@ -37,6 +37,13 @@ export default function CompanyManagement() {
     interview: 'No Idea'
   });
 
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: '' });
+    }, 3000);
+  };
+
   useEffect(() => {
     loadCompanies();
   }, []);
@@ -88,7 +95,6 @@ export default function CompanyManagement() {
   const filterAndSearch = () => {
     let filtered = companies;
 
-    // Apply status filter
     if (filterStatus === 'sent') {
       filtered = filtered.filter(c => c.mailSent === 'Sent');
     } else if (filterStatus === 'pending') {
@@ -101,7 +107,6 @@ export default function CompanyManagement() {
       filtered = filtered.filter(c => c.interview === 'Rejected');
     }
 
-    // Apply search
     if (searchTerm) {
       filtered = filtered.filter(c => 
         c.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,9 +140,9 @@ export default function CompanyManagement() {
         
         if (response.ok) {
           await loadCompanies();
-          alert('Company updated successfully!');
+          showToast('Company updated successfully!', 'success');
         } else {
-          alert('Failed to update company');
+          showToast('Failed to update company', 'error');
         }
       } else {
         const newCompany = {
@@ -155,16 +160,16 @@ export default function CompanyManagement() {
         
         if (response.ok) {
           await loadCompanies();
-          alert('Company added successfully!');
+          showToast('Company added successfully!', 'success');
         } else {
-          alert('Failed to add company');
+          showToast('Failed to add company', 'error');
         }
       }
       
       resetForm();
     } catch (error) {
       console.error('Error saving company:', error);
-      alert('Error saving company. Please check console.');
+      showToast('Error saving company. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -186,7 +191,7 @@ export default function CompanyManagement() {
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Are you sure you want to delete this company?')) {
+    if (window.confirm('Are you sure you want to delete this company?')) {
       setIsLoading(true);
       try {
         const company = companies.find(c => c.id === id);
@@ -196,13 +201,13 @@ export default function CompanyManagement() {
         
         if (response.ok) {
           await loadCompanies();
-          alert('Company deleted successfully!');
+          showToast('Company deleted successfully!', 'success');
         } else {
-          alert('Failed to delete company');
+          showToast('Failed to delete company', 'error');
         }
       } catch (error) {
         console.error('Error deleting company:', error);
-        alert('Error deleting company. Please check console.');
+        showToast('Error deleting company. Please try again.', 'error');
       } finally {
         setIsLoading(false);
       }
@@ -231,6 +236,7 @@ export default function CompanyManagement() {
     a.download = `companies_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     setShowExportMenu(false);
+    showToast('CSV exported successfully!', 'success');
   };
 
   const handleSendEmail = (company) => {
@@ -245,7 +251,7 @@ export default function CompanyManagement() {
   const handleBulkEmail = () => {
     const notSentCompanies = filteredCompanies.filter(c => c.mailSent === 'Not Sent');
     if (notSentCompanies.length === 0) {
-      alert('No companies with "Not Sent" status found!');
+      showToast('No companies with "Not Sent" status found!', 'warning');
       return;
     }
     setSelectedCompanies(notSentCompanies);
@@ -260,18 +266,13 @@ export default function CompanyManagement() {
     try {
       setIsLoading(true);
       
-      // Prepare email data
       const recipients = selectedCompanies.map(c => c.companyMail).join(',');
-      
-      // Create mailto link with Gmail
       const subject = encodeURIComponent(emailTemplate.subject);
       const body = encodeURIComponent(emailTemplate.body);
       const mailtoLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${recipients}&su=${subject}&body=${body}`;
       
-      // Open Gmail in new window
       window.open(mailtoLink, '_blank');
       
-      // Update mail status for all selected companies
       for (const company of selectedCompanies) {
         const response = await fetch('/api/companies', {
           method: 'PUT',
@@ -296,11 +297,11 @@ export default function CompanyManagement() {
       await loadCompanies();
       setShowEmailModal(false);
       setSelectedCompanies([]);
-      alert('Email opened in Gmail! Status updated to "Sent"');
+      showToast('Email opened in Gmail! Status updated to "Sent"', 'success');
       
     } catch (error) {
       console.error('Error sending email:', error);
-      alert('Error processing email. Please try again.');
+      showToast('Error processing email. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -320,7 +321,6 @@ export default function CompanyManagement() {
       c.interview || 'No Idea'
     ]);
 
-    // Create HTML table for Excel
     let html = '<html><head><meta charset="utf-8"><style>table {border-collapse: collapse; width: 100%;} th, td {border: 1px solid black; padding: 8px; text-align: left;} th {background-color: #4CAF50; color: white;}</style></head><body>';
     html += '<table>';
     html += '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
@@ -337,6 +337,7 @@ export default function CompanyManagement() {
     a.download = `companies_${new Date().toISOString().split('T')[0]}.xls`;
     a.click();
     setShowExportMenu(false);
+    showToast('Excel file exported successfully!', 'success');
   };
 
   const exportToPDF = () => {
@@ -353,7 +354,6 @@ export default function CompanyManagement() {
       c.interview || 'No Idea'
     ]);
 
-    // Create HTML for PDF
     let html = `<!DOCTYPE html>
     <html>
     <head>
@@ -402,6 +402,7 @@ export default function CompanyManagement() {
     }, 250);
     
     setShowExportMenu(false);
+    showToast('PDF export initiated!', 'success');
   };
 
   const resetForm = () => {
@@ -421,6 +422,29 @@ export default function CompanyManagement() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed top-4 right-4 z-[60] animate-in slide-in-from-top-5">
+          <div className={`flex items-center gap-3 px-6 py-4 rounded-lg shadow-2xl backdrop-blur-sm border-2 ${
+            toast.type === 'success' ? 'bg-emerald-500 border-emerald-400 text-white' :
+            toast.type === 'error' ? 'bg-red-500 border-red-400 text-white' :
+            toast.type === 'warning' ? 'bg-amber-500 border-amber-400 text-white' :
+            'bg-blue-500 border-blue-400 text-white'
+          }`}>
+            {toast.type === 'success' && <CheckCircle size={24} className="flex-shrink-0" />}
+            {toast.type === 'error' && <XCircle size={24} className="flex-shrink-0" />}
+            {toast.type === 'warning' && <XCircle size={24} className="flex-shrink-0" />}
+            <span className="font-semibold text-sm">{toast.message}</span>
+            <button 
+              onClick={() => setToast({ show: false, message: '', type: '' })}
+              className="ml-2 hover:bg-white hover:bg-opacity-20 rounded-full p-1 transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 text-white shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -441,7 +465,7 @@ export default function CompanyManagement() {
                     <div className="absolute inset-0 w-4 h-4 rounded-full bg-emerald-400 animate-ping opacity-75"></div>
                   )}
                 </div>
-                <span className="text-sm font-bold text-black drop-shadow-lg">
+                <span className="text-sm font-normal text-black drop-shadow-lg">
                   {dbStatus === 'active' ? 'Database Active' : 
                    dbStatus === 'inactive' ? 'Database Offline' : 
                    'Checking...'}
@@ -481,7 +505,7 @@ export default function CompanyManagement() {
               </div>
             </div>
             
-            <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <p className="text-sm text-blue-800">
                   <strong>Recipients ({selectedCompanies.length}):</strong> {selectedCompanies.map(c => c.companyName).join(', ')}
@@ -489,10 +513,9 @@ export default function CompanyManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Subject *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
                 <input
                   type="text"
-                  required
                   value={emailTemplate.subject}
                   onChange={(e) => setEmailTemplate({...emailTemplate, subject: e.target.value})}
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
@@ -501,9 +524,8 @@ export default function CompanyManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Message *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
                 <textarea
-                  required
                   value={emailTemplate.body}
                   onChange={(e) => setEmailTemplate({...emailTemplate, body: e.target.value})}
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
@@ -620,7 +642,7 @@ export default function CompanyManagement() {
               
               <button
                 onClick={loadCompanies}
-                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-4 py-3 bg-yellow-800 hover:bg-gray-200 rounded-lg transition-colors"
                 title="Refresh"
               >
                 <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
@@ -702,10 +724,9 @@ export default function CompanyManagement() {
               
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Company Name *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Company Name</label>
                   <input
                     type="text"
-                    required
                     value={formData.companyName}
                     onChange={(e) => setFormData({...formData, companyName: e.target.value})}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
@@ -714,9 +735,8 @@ export default function CompanyManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Company Detail *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Company Detail</label>
                   <textarea
-                    required
                     value={formData.companyDetail}
                     onChange={(e) => setFormData({...formData, companyDetail: e.target.value})}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
@@ -731,7 +751,7 @@ export default function CompanyManagement() {
                     Company Website
                   </label>
                   <input
-                    type="url"
+                    type="text"
                     value={formData.companyWebsite}
                     onChange={(e) => setFormData({...formData, companyWebsite: e.target.value})}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
@@ -743,11 +763,10 @@ export default function CompanyManagement() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                       <Phone size={16} />
-                      Contact *
+                      Contact
                     </label>
                     <input
-                      type="tel"
-                      required
+                      type="text"
                       value={formData.companyContact}
                       onChange={(e) => setFormData({...formData, companyContact: e.target.value})}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
@@ -758,11 +777,10 @@ export default function CompanyManagement() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                       <Mail size={16} />
-                      Email *
+                      Email
                     </label>
                     <input
-                      type="email"
-                      required
+                      type="text"
                       value={formData.companyMail}
                       onChange={(e) => setFormData({...formData, companyMail: e.target.value})}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
@@ -774,17 +792,16 @@ export default function CompanyManagement() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                     <MapPin size={16} />
-                    Location *
+                    Location
                   </label>
                   <select
-                    required
                     value={formData.companyLocation}
                     onChange={(e) => setFormData({...formData, companyLocation: e.target.value})}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors text-gray-900"
                   >
                     <option value="">Select Location</option>
                     
-                    <optgroup label="🏙️ Main Areas">
+              <optgroup label="🏙️ Main Areas">
                       <option value="Downtown Dubai">Downtown Dubai</option>
                       <option value="Dubai Marina">Dubai Marina</option>
                       <option value="Business Bay">Business Bay</option>
