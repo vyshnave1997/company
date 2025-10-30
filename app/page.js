@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Mail, CheckCircle, XCircle, Edit2, Trash2, Save, X, Search, Download, Upload, Filter, RefreshCw, Building2, Phone, MapPin, Calendar } from 'lucide-react';
+import { Plus, Mail, CheckCircle, XCircle, Edit2, Trash2, Save, X, Search, Download, Upload, Filter, RefreshCw, Building2, Phone, MapPin, Calendar, Globe, ChevronDown, FileSpreadsheet, FileText } from 'lucide-react';
 
 export default function CompanyManagement() {
   const [companies, setCompanies] = useState([]);
@@ -15,18 +15,20 @@ export default function CompanyManagement() {
   const [stats, setStats] = useState({
     total: 0,
     mailSent: 0,
-    acknowledged: 0,
+    interviewed: 0,
     pending: 0
   });
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [formData, setFormData] = useState({
     companyName: '',
     companyDetail: '',
+    companyWebsite: '',
     companyContact: '',
     companyMail: '',
     companyLocation: '',
     mailSent: 'Not Sent',
-    acknowledged: 'No'
+    interview: 'No Idea'
   });
 
   useEffect(() => {
@@ -36,6 +38,17 @@ export default function CompanyManagement() {
   useEffect(() => {
     filterAndSearch();
   }, [companies, searchTerm, filterStatus]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showExportMenu && !event.target.closest('.export-menu-container')) {
+        setShowExportMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showExportMenu]);
 
   const loadCompanies = async () => {
     setIsLoading(true);
@@ -61,7 +74,7 @@ export default function CompanyManagement() {
     setStats({
       total: data.length,
       mailSent: data.filter(c => c.mailSent === 'Sent').length,
-      acknowledged: data.filter(c => c.acknowledged === 'Yes').length,
+      interviewed: data.filter(c => c.interview === 'Selected').length,
       pending: data.filter(c => c.mailSent === 'Pending').length
     });
   };
@@ -76,8 +89,10 @@ export default function CompanyManagement() {
       filtered = filtered.filter(c => c.mailSent === 'Pending');
     } else if (filterStatus === 'not-sent') {
       filtered = filtered.filter(c => c.mailSent === 'Not Sent');
-    } else if (filterStatus === 'acknowledged') {
-      filtered = filtered.filter(c => c.acknowledged === 'Yes');
+    } else if (filterStatus === 'selected') {
+      filtered = filtered.filter(c => c.interview === 'Selected');
+    } else if (filterStatus === 'rejected') {
+      filtered = filtered.filter(c => c.interview === 'Rejected');
     }
 
     // Apply search
@@ -153,11 +168,12 @@ export default function CompanyManagement() {
     setFormData({
       companyName: company.companyName,
       companyDetail: company.companyDetail,
+      companyWebsite: company.companyWebsite || '',
       companyContact: company.companyContact,
       companyMail: company.companyMail,
       companyLocation: company.companyLocation,
       mailSent: company.mailSent,
-      acknowledged: company.acknowledged
+      interview: company.interview || 'No Idea'
     });
     setEditingId(company.id);
     setIsFormOpen(true);
@@ -188,36 +204,137 @@ export default function CompanyManagement() {
   };
 
   const exportToCSV = () => {
-    const headers = ['S.No', 'Company Name', 'Details', 'Contact', 'Email', 'Location', 'Mail Status', 'Acknowledged'];
+    const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview'];
     const rows = filteredCompanies.map(c => [
       c.serialNo,
       c.companyName,
       c.companyDetail,
+      c.companyWebsite || '',
       c.companyContact,
       c.companyMail,
       c.companyLocation,
       c.mailSent,
-      c.acknowledged
+      c.interview || 'No Idea'
     ]);
     
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `companies_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+    setShowExportMenu(false);
+  };
+
+  const exportToExcel = () => {
+    const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview'];
+    const rows = filteredCompanies.map(c => [
+      c.serialNo,
+      c.companyName,
+      c.companyDetail,
+      c.companyWebsite || '',
+      c.companyContact,
+      c.companyMail,
+      c.companyLocation,
+      c.mailSent,
+      c.interview || 'No Idea'
+    ]);
+
+    // Create HTML table for Excel
+    let html = '<html><head><meta charset="utf-8"><style>table {border-collapse: collapse; width: 100%;} th, td {border: 1px solid black; padding: 8px; text-align: left;} th {background-color: #4CAF50; color: white;}</style></head><body>';
+    html += '<table>';
+    html += '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
+    html += '<tbody>';
+    rows.forEach(row => {
+      html += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+    });
+    html += '</tbody></table></body></html>';
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `companies_${new Date().toISOString().split('T')[0]}.xls`;
+    a.click();
+    setShowExportMenu(false);
+  };
+
+  const exportToPDF = () => {
+    const headers = ['S.No', 'Company', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail', 'Interview'];
+    const rows = filteredCompanies.map(c => [
+      c.serialNo,
+      c.companyName,
+      c.companyDetail.substring(0, 30) + '...',
+      c.companyWebsite ? 'Yes' : 'No',
+      c.companyContact,
+      c.companyMail,
+      c.companyLocation,
+      c.mailSent,
+      c.interview || 'No Idea'
+    ]);
+
+    // Create HTML for PDF
+    let html = `<!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #1e40af; text-align: center; margin-bottom: 20px; }
+        .info { text-align: center; margin-bottom: 30px; color: #666; }
+        table { border-collapse: collapse; width: 100%; font-size: 10px; }
+        th { background-color: #1e40af; color: white; padding: 8px; text-align: left; border: 1px solid #ddd; }
+        td { padding: 6px; border: 1px solid #ddd; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .footer { margin-top: 30px; text-align: center; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <h1>Company Management Report</h1>
+      <div class="info">
+        <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+        <p>Total Companies: ${filteredCompanies.length}</p>
+      </div>
+      <table>
+        <thead>
+          <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+        </thead>
+        <tbody>`;
+    
+    rows.forEach(row => {
+      html += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+    });
+    
+    html += `</tbody>
+      </table>
+      <div class="footer">
+        <p>Company Management System - Confidential</p>
+      </div>
+    </body>
+    </html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = window.URL.createObjectURL(blob);
+    const printWindow = window.open(url, '_blank');
+    
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+    
+    setShowExportMenu(false);
   };
 
   const resetForm = () => {
     setFormData({
       companyName: '',
       companyDetail: '',
+      companyWebsite: '',
       companyContact: '',
       companyMail: '',
       companyLocation: '',
       mailSent: 'Not Sent',
-      acknowledged: 'No'
+      interview: 'No Idea'
     });
     setIsFormOpen(false);
     setEditingId(null);
@@ -289,8 +406,8 @@ export default function CompanyManagement() {
           <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Acknowledged</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.acknowledged}</p>
+                <p className="text-sm font-medium text-gray-600">Interviewed</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.interviewed}</p>
               </div>
               <CheckCircle className="text-purple-500" size={32} />
             </div>
@@ -333,7 +450,8 @@ export default function CompanyManagement() {
                   <option value="sent">Mail Sent</option>
                   <option value="pending">Pending</option>
                   <option value="not-sent">Not Sent</option>
-                  <option value="acknowledged">Acknowledged</option>
+                  <option value="selected">Selected</option>
+                  <option value="rejected">Rejected</option>
                 </select>
               </div>
               
@@ -345,13 +463,51 @@ export default function CompanyManagement() {
                 <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
               </button>
               
-              <button
-                onClick={exportToCSV}
-                className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Download size={20} />
-                <span className="hidden sm:inline">Export</span>
-              </button>
+              <div className="relative export-menu-container">
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Download size={20} />
+                  <span className="hidden sm:inline">Export</span>
+                  <ChevronDown size={16} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
+                    <button
+                      onClick={exportToCSV}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 text-gray-700"
+                    >
+                      <FileText size={18} className="text-blue-600" />
+                      <div>
+                        <div className="font-semibold">Export as CSV</div>
+                        <div className="text-xs text-gray-500">Comma separated values</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={exportToExcel}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 text-gray-700 border-t border-gray-100"
+                    >
+                      <FileSpreadsheet size={18} className="text-green-600" />
+                      <div>
+                        <div className="font-semibold">Export as Excel</div>
+                        <div className="text-xs text-gray-500">Microsoft Excel format</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={exportToPDF}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 text-gray-700 border-t border-gray-100"
+                    >
+                      <FileText size={18} className="text-red-600" />
+                      <div>
+                        <div className="font-semibold">Export as PDF</div>
+                        <div className="text-xs text-gray-500">Printable document</div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -372,7 +528,7 @@ export default function CompanyManagement() {
                 </div>
               </div>
               
-              <div className="p-6 space-y-4">
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Company Name *</label>
                   <input
@@ -394,6 +550,20 @@ export default function CompanyManagement() {
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
                     placeholder="Enter company details"
                     rows="3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <Globe size={16} />
+                    Company Website
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.companyWebsite}
+                    onChange={(e) => setFormData({...formData, companyWebsite: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
+                    placeholder="https://www.example.com"
                   />
                 </div>
 
@@ -459,21 +629,22 @@ export default function CompanyManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Acknowledged</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Interview Status</label>
                     <select
-                      value={formData.acknowledged}
-                      onChange={(e) => setFormData({...formData, acknowledged: e.target.value})}
+                      value={formData.interview}
+                      onChange={(e) => setFormData({...formData, interview: e.target.value})}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors text-gray-900"
                     >
-                      <option>No</option>
-                      <option>Yes</option>
+                      <option>No Idea</option>
+                      <option>Selected</option>
+                      <option>Rejected</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="flex gap-3 pt-4">
                   <button
-                    onClick={handleSubmit}
+                    type="submit"
                     disabled={isLoading}
                     className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                   >
@@ -481,6 +652,7 @@ export default function CompanyManagement() {
                     {isLoading ? 'Saving...' : editingId ? 'Update' : 'Save'}
                   </button>
                   <button
+                    type="button"
                     onClick={resetForm}
                     disabled={isLoading}
                     className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all disabled:opacity-50"
@@ -488,7 +660,7 @@ export default function CompanyManagement() {
                     Cancel
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         )}
@@ -502,11 +674,12 @@ export default function CompanyManagement() {
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">S.No</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Company Name</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Details</th>
+                  <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Website</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Contact</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Email</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Location</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Mail Status</th>
-                  <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Acknowledged</th>
+                  <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Interview</th>
                   <th className="px-4 py-4 text-center text-sm font-bold text-gray-700">Actions</th>
                 </tr>
               </thead>
@@ -516,8 +689,39 @@ export default function CompanyManagement() {
                     <td className="px-4 py-4 text-sm font-medium text-gray-900">{company.serialNo}</td>
                     <td className="px-4 py-4 text-sm font-semibold text-gray-900">{company.companyName}</td>
                     <td className="px-4 py-4 text-sm text-gray-600 max-w-xs truncate">{company.companyDetail}</td>
-                    <td className="px-4 py-4 text-sm text-gray-600">{company.companyContact}</td>
-                    <td className="px-4 py-4 text-sm text-blue-600">{company.companyMail}</td>
+                    <td className="px-4 py-4 text-sm">
+                      {company.companyWebsite ? (
+                        <a 
+                          href={company.companyWebsite} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Globe size={14} />
+                          Visit Site
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-sm">
+                      <a 
+                        href={`tel:${company.companyContact}`} 
+                        className="text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <Phone size={14} />
+                        {company.companyContact}
+                      </a>
+                    </td>
+                    <td className="px-4 py-4 text-sm">
+                      <a 
+                        href={`mailto:${company.companyMail}`} 
+                        className="text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <Mail size={14} />
+                        {company.companyMail}
+                      </a>
+                    </td>
                     <td className="px-4 py-4 text-sm text-gray-600">{company.companyLocation}</td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
@@ -531,10 +735,14 @@ export default function CompanyManagement() {
                     </td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
-                        company.acknowledged === 'Yes' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'
+                        company.interview === 'Selected' ? 'bg-green-100 text-green-700' :
+                        company.interview === 'Rejected' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-700'
                       }`}>
-                        {company.acknowledged === 'Yes' ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                        {company.acknowledged}
+                        {company.interview === 'Selected' ? <CheckCircle size={14} /> : 
+                         company.interview === 'Rejected' ? <XCircle size={14} /> : 
+                         <XCircle size={14} />}
+                        {company.interview || 'No Idea'}
                       </span>
                     </td>
                     <td className="px-4 py-4">
@@ -592,13 +800,37 @@ export default function CompanyManagement() {
                 <div className="flex items-center gap-2">
                   <Phone size={16} className="text-gray-400" />
                   <span className="font-semibold text-gray-700">Contact:</span>
-                  <span className="text-gray-600">{company.companyContact}</span>
+                  <a 
+                    href={`tel:${company.companyContact}`} 
+                    className="text-blue-600 hover:underline font-medium"
+                  >
+                    {company.companyContact}
+                  </a>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail size={16} className="text-gray-400" />
                   <span className="font-semibold text-gray-700">Email:</span>
-                  <span className="text-blue-600">{company.companyMail}</span>
+                  <a 
+                    href={`mailto:${company.companyMail}`} 
+                    className="text-blue-600 hover:underline font-medium break-all"
+                  >
+                    {company.companyMail}
+                  </a>
                 </div>
+                {company.companyWebsite && (
+                  <div className="flex items-center gap-2">
+                    <Globe size={16} className="text-gray-400" />
+                    <span className="font-semibold text-gray-700">Website:</span>
+                    <a 
+                      href={company.companyWebsite} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-blue-600 hover:underline font-medium"
+                    >
+                      Visit Site
+                    </a>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <MapPin size={16} className="text-gray-400" />
                   <span className="font-semibold text-gray-700">Location:</span>
@@ -606,7 +838,7 @@ export default function CompanyManagement() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-2 mb-4 flex-wrap">
                 <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
                   company.mailSent === 'Sent' ? 'bg-emerald-100 text-emerald-700' :
                   company.mailSent === 'Pending' ? 'bg-amber-100 text-amber-700' :
@@ -616,10 +848,14 @@ export default function CompanyManagement() {
                   {company.mailSent}
                 </span>
                 <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
-                  company.acknowledged === 'Yes' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'
+                  company.interview === 'Selected' ? 'bg-green-100 text-green-700' :
+                  company.interview === 'Rejected' ? 'bg-red-100 text-red-700' :
+                  'bg-gray-100 text-gray-700'
                 }`}>
-                  {company.acknowledged === 'Yes' ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                  {company.acknowledged}
+                  {company.interview === 'Selected' ? <CheckCircle size={14} /> : 
+                   company.interview === 'Rejected' ? <XCircle size={14} /> : 
+                   <XCircle size={14} />}
+                  {company.interview || 'No Idea'}
                 </span>
               </div>
 
