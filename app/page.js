@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Mail, CheckCircle, XCircle, Edit2, Trash2, Save, X, Search, Download, Upload, Filter, RefreshCw, Building2, Phone, MapPin, Calendar, Globe, ChevronDown, FileSpreadsheet, FileText } from 'lucide-react';
+import { Plus, Mail, CheckCircle, XCircle, Edit2, Trash2, Save, X, Search, Download, Upload, Filter, RefreshCw, Building2, Phone, MapPin, Calendar, Globe, ChevronDown, FileSpreadsheet, FileText, Send } from 'lucide-react';
 
 export default function CompanyManagement() {
   const [companies, setCompanies] = useState([]);
@@ -19,6 +19,12 @@ export default function CompanyManagement() {
     pending: 0
   });
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [selectedCompanies, setSelectedCompanies] = useState([]);
+  const [emailTemplate, setEmailTemplate] = useState({
+    subject: '',
+    body: ''
+  });
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [formData, setFormData] = useState({
     companyName: '',
@@ -227,6 +233,79 @@ export default function CompanyManagement() {
     setShowExportMenu(false);
   };
 
+  const handleSendEmail = (company) => {
+    setSelectedCompanies([company]);
+    setEmailTemplate({
+      subject: `Regarding ${company.companyName}`,
+      body: `Dear ${company.companyName} Team,\n\n\n\nBest Regards`
+    });
+    setShowEmailModal(true);
+  };
+
+  const handleBulkEmail = () => {
+    const notSentCompanies = filteredCompanies.filter(c => c.mailSent === 'Not Sent');
+    if (notSentCompanies.length === 0) {
+      alert('No companies with "Not Sent" status found!');
+      return;
+    }
+    setSelectedCompanies(notSentCompanies);
+    setEmailTemplate({
+      subject: 'Job Application',
+      body: 'Dear Hiring Manager,\n\nI am writing to express my interest in potential opportunities at your esteemed organization.\n\nBest Regards'
+    });
+    setShowEmailModal(true);
+  };
+
+  const sendEmailViaGmail = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Prepare email data
+      const recipients = selectedCompanies.map(c => c.companyMail).join(',');
+      
+      // Create mailto link with Gmail
+      const subject = encodeURIComponent(emailTemplate.subject);
+      const body = encodeURIComponent(emailTemplate.body);
+      const mailtoLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${recipients}&su=${subject}&body=${body}`;
+      
+      // Open Gmail in new window
+      window.open(mailtoLink, '_blank');
+      
+      // Update mail status for all selected companies
+      for (const company of selectedCompanies) {
+        const response = await fetch('/api/companies', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            _id: company._id,
+            id: company.id,
+            serialNo: company.serialNo,
+            companyName: company.companyName,
+            companyDetail: company.companyDetail,
+            companyWebsite: company.companyWebsite,
+            companyContact: company.companyContact,
+            companyMail: company.companyMail,
+            companyLocation: company.companyLocation,
+            mailSent: 'Sent',
+            interview: company.interview,
+            updatedAt: new Date().toISOString()
+          })
+        });
+      }
+      
+      await loadCompanies();
+      setShowEmailModal(false);
+      setSelectedCompanies([]);
+      alert('Email opened in Gmail! Status updated to "Sent"');
+      
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('Error processing email. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const exportToExcel = () => {
     const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview'];
     const rows = filteredCompanies.map(c => [
@@ -380,6 +459,90 @@ export default function CompanyManagement() {
         </div>
       </div>
 
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white p-6 rounded-t-2xl">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <Mail size={28} />
+                  Send Email via Gmail
+                </h2>
+                <button 
+                  onClick={() => {
+                    setShowEmailModal(false);
+                    setSelectedCompanies([]);
+                  }} 
+                  className="hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Recipients ({selectedCompanies.length}):</strong> {selectedCompanies.map(c => c.companyName).join(', ')}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Subject *</label>
+                <input
+                  type="text"
+                  required
+                  value={emailTemplate.subject}
+                  onChange={(e) => setEmailTemplate({...emailTemplate, subject: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
+                  placeholder="Email subject"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Message *</label>
+                <textarea
+                  required
+                  value={emailTemplate.body}
+                  onChange={(e) => setEmailTemplate({...emailTemplate, body: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
+                  placeholder="Email body"
+                  rows="10"
+                />
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-amber-800">
+                  <strong>Note:</strong> This will open Gmail in a new tab with pre-filled content. After sending the email from Gmail, the mail status will be automatically updated to "Sent".
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={sendEmailViaGmail}
+                  disabled={isLoading}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Send size={20} />
+                  {isLoading ? 'Processing...' : 'Open in Gmail'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEmailModal(false);
+                    setSelectedCompanies([]);
+                  }}
+                  disabled={isLoading}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -461,6 +624,15 @@ export default function CompanyManagement() {
                 title="Refresh"
               >
                 <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
+              </button>
+
+              <button
+                onClick={handleBulkEmail}
+                className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                title="Send Bulk Email"
+              >
+                <Send size={20} />
+                <span className="hidden sm:inline">Send Emails</span>
               </button>
               
               <div className="relative export-menu-container">
@@ -604,14 +776,131 @@ export default function CompanyManagement() {
                     <MapPin size={16} />
                     Location *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={formData.companyLocation}
                     onChange={(e) => setFormData({...formData, companyLocation: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors placeholder:text-gray-500 text-gray-900"
-                    placeholder="City, Country"
-                  />
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors text-gray-900"
+                  >
+                    <option value="">Select Location</option>
+                    
+                    <optgroup label="🏙️ Main Areas">
+                      <option value="Downtown Dubai">Downtown Dubai</option>
+                      <option value="Dubai Marina">Dubai Marina</option>
+                      <option value="Business Bay">Business Bay</option>
+                      <option value="Jumeirah Lake Towers (JLT)">Jumeirah Lake Towers (JLT)</option>
+                      <option value="Dubai Internet City">Dubai Internet City</option>
+                      <option value="Dubai Media City">Dubai Media City</option>
+                      <option value="Dubai Knowledge Park">Dubai Knowledge Park</option>
+                      <option value="Deira">Deira</option>
+                      <option value="Bur Dubai">Bur Dubai</option>
+                      <option value="Jumeirah">Jumeirah</option>
+                      <option value="Al Barsha">Al Barsha</option>
+                      <option value="Al Quoz">Al Quoz</option>
+                      <option value="Sheikh Zayed Road">Sheikh Zayed Road</option>
+                      <option value="DIFC">DIFC (Dubai International Financial Centre)</option>
+                      <option value="Dubai Silicon Oasis">Dubai Silicon Oasis</option>
+                      <option value="International City">International City</option>
+                      <option value="Discovery Gardens">Discovery Gardens</option>
+                      <option value="Motor City">Motor City</option>
+                      <option value="Dubai Sports City">Dubai Sports City</option>
+                      <option value="Arabian Ranches">Arabian Ranches</option>
+                    </optgroup>
+                    
+                    <optgroup label="🚇 Red Line Metro Stations">
+                      <option value="Rashidiya Metro Station">Rashidiya</option>
+                      <option value="Dubai Airport Free Zone Metro Station">Dubai Airport Free Zone</option>
+                      <option value="Dubai Airport Terminal 3 Metro Station">Dubai Airport Terminal 3</option>
+                      <option value="Dubai Airport Terminal 1 Metro Station">Dubai Airport Terminal 1</option>
+                      <option value="GGICO Metro Station">GGICO</option>
+                      <option value="Deira City Centre Metro Station">Deira City Centre</option>
+                      <option value="Abu Hail Metro Station">Abu Hail</option>
+                      <option value="Abu Baker Al Siddique Metro Station">Abu Baker Al Siddique</option>
+                      <option value="Salah Al Din Metro Station">Salah Al Din</option>
+                      <option value="Union Metro Station">Union</option>
+                      <option value="Baniyas Square Metro Station">Baniyas Square</option>
+                      <option value="Palm Deira Metro Station">Palm Deira</option>
+                      <option value="Al Ras Metro Station">Al Ras</option>
+                      <option value="Al Ghubaiba Metro Station">Al Ghubaiba</option>
+                      <option value="Al Fahidi Metro Station">Al Fahidi</option>
+                      <option value="BurJuman Metro Station">BurJuman</option>
+                      <option value="Oud Metha Metro Station">Oud Metha</option>
+                      <option value="Dubai Healthcare City Metro Station">Dubai Healthcare City</option>
+                      <option value="Al Jadaf Metro Station">Al Jadaf</option>
+                      <option value="Creek Metro Station">Creek</option>
+                      <option value="Financial Centre Metro Station">Financial Centre</option>
+                      <option value="Emirates Towers Metro Station">Emirates Towers</option>
+                      <option value="World Trade Centre Metro Station">World Trade Centre</option>
+                      <option value="First Abu Dhabi Bank Metro Station">First Abu Dhabi Bank</option>
+                      <option value="Burj Khalifa/Dubai Mall Metro Station">Burj Khalifa/Dubai Mall</option>
+                      <option value="Business Bay Metro Station">Business Bay</option>
+                      <option value="Noor Bank Metro Station">Noor Bank</option>
+                      <option value="Mall of the Emirates Metro Station">Mall of the Emirates</option>
+                      <option value="Sharaf DG Metro Station">Sharaf DG</option>
+                      <option value="Dubai Internet City Metro Station">Dubai Internet City</option>
+                      <option value="Nakheel Metro Station">Nakheel</option>
+                      <option value="Danube Metro Station">Danube</option>
+                      <option value="Ibn Battuta Metro Station">Ibn Battuta</option>
+                      <option value="Energy Metro Station">Energy</option>
+                      <option value="Jebel Ali Metro Station">Jebel Ali</option>
+                      <option value="UAE Exchange Metro Station">UAE Exchange</option>
+                    </optgroup>
+                    
+                    <optgroup label="🚇 Green Line Metro Stations">
+                      <option value="Etisalat Metro Station">Etisalat</option>
+                      <option value="Al Qusais Metro Station">Al Qusais</option>
+                      <option value="Dubai Airport Free Zone Metro Station">Dubai Airport Free Zone</option>
+                      <option value="Al Nahda Metro Station">Al Nahda</option>
+                      <option value="Stadium Metro Station">Stadium</option>
+                      <option value="Al Qiyadah Metro Station">Al Qiyadah</option>
+                      <option value="Abu Hail Metro Station">Abu Hail</option>
+                      <option value="Salah Al Din Metro Station">Salah Al Din</option>
+                      <option value="Union Metro Station">Union</option>
+                      <option value="Baniyas Square Metro Station">Baniyas Square</option>
+                      <option value="Palm Deira Metro Station">Palm Deira</option>
+                      <option value="Al Ras Metro Station">Al Ras</option>
+                      <option value="Al Ghubaiba Metro Station">Al Ghubaiba</option>
+                      <option value="Al Fahidi Metro Station">Al Fahidi</option>
+                      <option value="BurJuman Metro Station">BurJuman</option>
+                      <option value="Oud Metha Metro Station">Oud Metha</option>
+                      <option value="Dubai Healthcare City Metro Station">Dubai Healthcare City</option>
+                      <option value="Al Jadaf Metro Station">Al Jadaf</option>
+                      <option value="Creek Metro Station">Creek</option>
+                    </optgroup>
+                    
+                    <optgroup label="🌐 Free Zones & Business Parks">
+                      <option value="Dubai Airport Free Zone">Dubai Airport Free Zone</option>
+                      <option value="Jebel Ali Free Zone (JAFZA)">Jebel Ali Free Zone (JAFZA)</option>
+                      <option value="Dubai South">Dubai South</option>
+                      <option value="Dubai CommerCity">Dubai CommerCity</option>
+                      <option value="Dubai Design District (d3)">Dubai Design District (d3)</option>
+                      <option value="Dubai Studio City">Dubai Studio City</option>
+                      <option value="Dubai Production City">Dubai Production City</option>
+                      <option value="Dubai Outsource City">Dubai Outsource City</option>
+                      <option value="Dubai Science Park">Dubai Science Park</option>
+                      <option value="Dubai Textile City">Dubai Textile City</option>
+                      <option value="Dubai Industrial City">Dubai Industrial City</option>
+                      <option value="Dubai Academic City">Dubai Academic City</option>
+                    </optgroup>
+                    
+                    <optgroup label="🏝️ Other Areas">
+                      <option value="Palm Jumeirah">Palm Jumeirah</option>
+                      <option value="Dubai Hills Estate">Dubai Hills Estate</option>
+                      <option value="Al Wasl">Al Wasl</option>
+                      <option value="Mirdif">Mirdif</option>
+                      <option value="Nad Al Sheba">Nad Al Sheba</option>
+                      <option value="Al Warqa">Al Warqa</option>
+                      <option value="Al Mizhar">Al Mizhar</option>
+                      <option value="Festival City">Festival City</option>
+                      <option value="Dubai Creek Harbour">Dubai Creek Harbour</option>
+                      <option value="Meydan">Meydan</option>
+                      <option value="Umm Suqeim">Umm Suqeim</option>
+                      <option value="Al Safa">Al Safa</option>
+                      <option value="Al Satwa">Al Satwa</option>
+                      <option value="Karama">Karama</option>
+                      <option value="Muhaisnah">Muhaisnah</option>
+                    </optgroup>
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -748,6 +1037,13 @@ export default function CompanyManagement() {
                     <td className="px-4 py-4">
                       <div className="flex gap-2 justify-center">
                         <button
+                          onClick={() => handleSendEmail(company)}
+                          className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                          title="Send Email"
+                        >
+                          <Send size={18} />
+                        </button>
+                        <button
                           onClick={() => handleEdit(company)}
                           className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                           title="Edit"
@@ -860,6 +1156,13 @@ export default function CompanyManagement() {
               </div>
 
               <div className="flex gap-2 pt-3 border-t">
+                <button
+                  onClick={() => handleSendEmail(company)}
+                  className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                >
+                  <Send size={16} />
+                  Email
+                </button>
                 <button
                   onClick={() => handleEdit(company)}
                   className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
