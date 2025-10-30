@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Mail, CheckCircle, XCircle, Edit2, Trash2, Save, X, Search, Download, Upload, Filter, RefreshCw, Building2, Phone, MapPin, Calendar, Globe, ChevronDown, FileSpreadsheet, FileText, Send } from 'lucide-react';
+import { Plus, Mail, CheckCircle, XCircle, Edit2, Trash2, Save, X, Search, Download, Upload, Filter, RefreshCw, Building2, Phone, MapPin, Calendar, Globe, ChevronDown, FileSpreadsheet, FileText, Send, Star } from 'lucide-react';
 
 export default function CompanyManagement() {
   const [companies, setCompanies] = useState([]);
@@ -16,7 +16,8 @@ export default function CompanyManagement() {
     total: 0,
     mailSent: 0,
     interviewed: 0,
-    pending: 0
+    pending: 0,
+    favorites: 0
   });
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -35,7 +36,8 @@ export default function CompanyManagement() {
     companyLocation: '',
     mailSent: 'Not Sent',
     interview: 'No Idea',
-    visitedOffice: 'No'
+    visitedOffice: 'No',
+    isFavorite: false
   });
 
   const showToast = (message, type = 'success') => {
@@ -89,7 +91,8 @@ export default function CompanyManagement() {
       total: data.length,
       mailSent: data.filter(c => c.mailSent === 'Sent').length,
       interviewed: data.filter(c => c.interview === 'Selected').length,
-      pending: data.filter(c => c.mailSent === 'Pending').length
+      pending: data.filter(c => c.mailSent === 'Pending').length,
+      favorites: data.filter(c => c.isFavorite === true).length
     });
   };
 
@@ -106,6 +109,8 @@ export default function CompanyManagement() {
       filtered = filtered.filter(c => c.interview === 'Selected');
     } else if (filterStatus === 'rejected') {
       filtered = filtered.filter(c => c.interview === 'Rejected');
+    } else if (filterStatus === 'favorites') {
+      filtered = filtered.filter(c => c.isFavorite === true);
     }
 
     if (searchTerm) {
@@ -186,7 +191,8 @@ export default function CompanyManagement() {
       companyLocation: company.companyLocation,
       mailSent: company.mailSent,
       interview: company.interview || 'No Idea',
-      visitedOffice: company.visitedOffice || 'No'
+      visitedOffice: company.visitedOffice || 'No',
+      isFavorite: company.isFavorite || false
     });
     setEditingId(company.id);
     setIsFormOpen(true);
@@ -216,8 +222,33 @@ export default function CompanyManagement() {
     }
   };
 
+  const toggleFavorite = async (company) => {
+    try {
+      const response = await fetch('/api/companies', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...company,
+          isFavorite: !company.isFavorite,
+          updatedAt: new Date().toISOString()
+        })
+      });
+      
+      if (response.ok) {
+        await loadCompanies();
+        showToast(
+          company.isFavorite ? 'Removed from Hope' : 'Added to Hope',
+          'success'
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling Hope:', error);
+      showToast('Error updating Hope status', 'error');
+    }
+  };
+
   const exportToCSV = () => {
-    const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview', 'Visited Office'];
+    const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview', 'Visited Office', 'Favorite'];
     const rows = filteredCompanies.map(c => [
       c.serialNo,
       c.companyName,
@@ -228,7 +259,8 @@ export default function CompanyManagement() {
       c.companyLocation,
       c.mailSent,
       c.interview || 'No Idea',
-      c.visitedOffice || 'No'
+      c.visitedOffice || 'No',
+      c.isFavorite ? 'Yes' : 'No'
     ]);
     
     const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -311,7 +343,7 @@ export default function CompanyManagement() {
   };
 
   const exportToExcel = () => {
-    const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview', 'Visited Office'];
+    const headers = ['S.No', 'Company Name', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail Status', 'Interview', 'Visited Office', 'Favorite'];
     const rows = filteredCompanies.map(c => [
       c.serialNo,
       c.companyName,
@@ -322,7 +354,8 @@ export default function CompanyManagement() {
       c.companyLocation,
       c.mailSent,
       c.interview || 'No Idea',
-      c.visitedOffice || 'No'
+      c.visitedOffice || 'No',
+      c.isFavorite ? 'Yes' : 'No'
     ]);
 
     let html = '<html><head><meta charset="utf-8"><style>table {border-collapse: collapse; width: 100%;} th, td {border: 1px solid black; padding: 8px; text-align: left;} th {background-color: #4CAF50; color: white;}</style></head><body>';
@@ -345,7 +378,7 @@ export default function CompanyManagement() {
   };
 
   const exportToPDF = () => {
-    const headers = ['S.No', 'Company', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail', 'Interview', 'Visited'];
+    const headers = ['S.No', 'Company', 'Details', 'Website', 'Contact', 'Email', 'Location', 'Mail', 'Interview', 'Visited', 'Fav'];
     const rows = filteredCompanies.map(c => [
       c.serialNo,
       c.companyName,
@@ -356,7 +389,8 @@ export default function CompanyManagement() {
       c.companyLocation,
       c.mailSent,
       c.interview || 'No Idea',
-      c.visitedOffice || 'No'
+      c.visitedOffice || 'No',
+      c.isFavorite ? '⭐' : '-'
     ]);
 
     let html = `<!DOCTYPE html>
@@ -420,7 +454,8 @@ export default function CompanyManagement() {
       companyLocation: '',
       mailSent: 'Not Sent',
       interview: 'No Idea',
-      visitedOffice: 'No'
+      visitedOffice: 'No',
+      isFavorite: false
     });
     setIsFormOpen(false);
     setEditingId(null);
@@ -573,7 +608,7 @@ export default function CompanyManagement() {
 
       {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
               <div>
@@ -613,6 +648,16 @@ export default function CompanyManagement() {
               <XCircle className="text-amber-500" size={32} />
             </div>
           </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Hope</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.favorites}</p>
+              </div>
+              <Star className="text-yellow-500 fill-yellow-500" size={32} />
+            </div>
+          </div>
         </div>
 
         {/* Search and Filter Bar */}
@@ -638,6 +683,7 @@ export default function CompanyManagement() {
                   className="pl-10 pr-8 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none appearance-none bg-white cursor-pointer text-gray-900"
                 >
                   <option value="all">All Status</option>
+                  <option value="favorites">Hope</option>
                   <option value="sent">Mail Sent</option>
                   <option value="pending">Pending</option>
                   <option value="not-sent">Not Sent</option>
@@ -648,7 +694,7 @@ export default function CompanyManagement() {
               
               <button
                 onClick={loadCompanies}
-                className="px-4 py-3 bg-orange-900 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-4 py-3 bg-yellow-800 hover:bg-gray-200 rounded-lg transition-colors"
                 title="Refresh"
               >
                 <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
@@ -807,7 +853,7 @@ export default function CompanyManagement() {
                   >
                     <option value="">Select Location</option>
                     
-        <optgroup label="🏙️ Main Areas">
+                    <optgroup label="🏙️ Main Areas">
                       <option value="Downtown Dubai">Downtown Dubai</option>
                       <option value="Dubai Marina">Dubai Marina</option>
                       <option value="Business Bay">Business Bay</option>
@@ -815,113 +861,35 @@ export default function CompanyManagement() {
                       <option value="Dubai Internet City">Dubai Internet City</option>
                       <option value="Dubai Media City">Dubai Media City</option>
                       <option value="Dubai Knowledge Park">Dubai Knowledge Park</option>
+                      <option value="Dubai Silicon Oasis">Dubai Silicon Oasis</option>
+                      <option value="DIFC (Dubai International Financial Centre)">DIFC</option>
+                      <option value="Muhaisnah">Muhaisnah</option>
+                    </optgroup>
+                    
+                    <optgroup label="🏢 Free Zones">
+                      <option value="DAFZA (Dubai Airport Free Zone)">DAFZA</option>
+                      <option value="JAFZA (Jebel Ali Free Zone)">JAFZA</option>
+                      <option value="Dubai South">Dubai South</option>
+                      <option value="Dubai Production City">Dubai Production City</option>
+                      <option value="Dubai Studio City">Dubai Studio City</option>
+                    </optgroup>
+                    
+                    <optgroup label="📍 Other Areas">
                       <option value="Deira">Deira</option>
                       <option value="Bur Dubai">Bur Dubai</option>
-                      <option value="Jumeirah">Jumeirah</option>
-                      <option value="Al Barsha">Al Barsha</option>
                       <option value="Al Quoz">Al Quoz</option>
+                      <option value="Al Barsha">Al Barsha</option>
                       <option value="Sheikh Zayed Road">Sheikh Zayed Road</option>
-                      <option value="DIFC">DIFC (Dubai International Financial Centre)</option>
-                      <option value="Dubai Silicon Oasis">Dubai Silicon Oasis</option>
+                      <option value="Dubai Healthcare City">Dubai Healthcare City</option>
+                      <option value="Dubai Design District (d3)">Dubai Design District (d3)</option>
+                      <option value="Motor City">Motor City</option>
+                      <option value="Sports City">Sports City</option>
                       <option value="International City">International City</option>
                       <option value="Discovery Gardens">Discovery Gardens</option>
-                      <option value="Motor City">Motor City</option>
-                      <option value="Dubai Sports City">Dubai Sports City</option>
-                      <option value="Arabian Ranches">Arabian Ranches</option>
-                    </optgroup>
-                    
-                    <optgroup label="🚇 Red Line Metro Stations">
-                      <option value="Rashidiya Metro Station">Rashidiya</option>
-                      <option value="Dubai Airport Free Zone Metro Station">Dubai Airport Free Zone</option>
-                      <option value="Dubai Airport Terminal 3 Metro Station">Dubai Airport Terminal 3</option>
-                      <option value="Dubai Airport Terminal 1 Metro Station">Dubai Airport Terminal 1</option>
-                      <option value="GGICO Metro Station">GGICO</option>
-                      <option value="Deira City Centre Metro Station">Deira City Centre</option>
-                      <option value="Abu Hail Metro Station">Abu Hail</option>
-                      <option value="Abu Baker Al Siddique Metro Station">Abu Baker Al Siddique</option>
-                      <option value="Salah Al Din Metro Station">Salah Al Din</option>
-                      <option value="Union Metro Station">Union</option>
-                      <option value="Baniyas Square Metro Station">Baniyas Square</option>
-                      <option value="Palm Deira Metro Station">Palm Deira</option>
-                      <option value="Al Ras Metro Station">Al Ras</option>
-                      <option value="Al Ghubaiba Metro Station">Al Ghubaiba</option>
-                      <option value="Al Fahidi Metro Station">Al Fahidi</option>
-                      <option value="BurJuman Metro Station">BurJuman</option>
-                      <option value="Oud Metha Metro Station">Oud Metha</option>
-                      <option value="Dubai Healthcare City Metro Station">Dubai Healthcare City</option>
-                      <option value="Al Jadaf Metro Station">Al Jadaf</option>
-                      <option value="Creek Metro Station">Creek</option>
-                      <option value="Financial Centre Metro Station">Financial Centre</option>
-                      <option value="Emirates Towers Metro Station">Emirates Towers</option>
-                      <option value="World Trade Centre Metro Station">World Trade Centre</option>
-                      <option value="First Abu Dhabi Bank Metro Station">First Abu Dhabi Bank</option>
-                      <option value="Burj Khalifa/Dubai Mall Metro Station">Burj Khalifa/Dubai Mall</option>
-                      <option value="Business Bay Metro Station">Business Bay</option>
-                      <option value="Noor Bank Metro Station">Noor Bank</option>
-                      <option value="Mall of the Emirates Metro Station">Mall of the Emirates</option>
-                      <option value="Sharaf DG Metro Station">Sharaf DG</option>
-                      <option value="Dubai Internet City Metro Station">Dubai Internet City</option>
-                      <option value="Nakheel Metro Station">Nakheel</option>
-                      <option value="Danube Metro Station">Danube</option>
-                      <option value="Ibn Battuta Metro Station">Ibn Battuta</option>
-                      <option value="Energy Metro Station">Energy</option>
-                      <option value="Jebel Ali Metro Station">Jebel Ali</option>
-                      <option value="UAE Exchange Metro Station">UAE Exchange</option>
-                    </optgroup>
-                    
-                    <optgroup label="🚇 Green Line Metro Stations">
-                      <option value="Etisalat Metro Station">Etisalat</option>
-                      <option value="Al Qusais Metro Station">Al Qusais</option>
-                      <option value="Dubai Airport Free Zone Metro Station">Dubai Airport Free Zone</option>
-                      <option value="Al Nahda Metro Station">Al Nahda</option>
-                      <option value="Stadium Metro Station">Stadium</option>
-                      <option value="Al Qiyadah Metro Station">Al Qiyadah</option>
-                      <option value="Abu Hail Metro Station">Abu Hail</option>
-                      <option value="Salah Al Din Metro Station">Salah Al Din</option>
-                      <option value="Union Metro Station">Union</option>
-                      <option value="Baniyas Square Metro Station">Baniyas Square</option>
-                      <option value="Palm Deira Metro Station">Palm Deira</option>
-                      <option value="Al Ras Metro Station">Al Ras</option>
-                      <option value="Al Ghubaiba Metro Station">Al Ghubaiba</option>
-                      <option value="Al Fahidi Metro Station">Al Fahidi</option>
-                      <option value="BurJuman Metro Station">BurJuman</option>
-                      <option value="Oud Metha Metro Station">Oud Metha</option>
-                      <option value="Dubai Healthcare City Metro Station">Dubai Healthcare City</option>
-                      <option value="Al Jadaf Metro Station">Al Jadaf</option>
-                      <option value="Creek Metro Station">Creek</option>
-                    </optgroup>
-                    
-                    <optgroup label="🌐 Free Zones & Business Parks">
-                      <option value="Dubai Airport Free Zone">Dubai Airport Free Zone</option>
-                      <option value="Jebel Ali Free Zone (JAFZA)">Jebel Ali Free Zone (JAFZA)</option>
-                      <option value="Dubai South">Dubai South</option>
-                      <option value="Dubai CommerCity">Dubai CommerCity</option>
-                      <option value="Dubai Design District (d3)">Dubai Design District (d3)</option>
-                      <option value="Dubai Studio City">Dubai Studio City</option>
-                      <option value="Dubai Production City">Dubai Production City</option>
-                      <option value="Dubai Outsource City">Dubai Outsource City</option>
-                      <option value="Dubai Science Park">Dubai Science Park</option>
-                      <option value="Dubai Textile City">Dubai Textile City</option>
-                      <option value="Dubai Industrial City">Dubai Industrial City</option>
-                      <option value="Dubai Academic City">Dubai Academic City</option>
-                    </optgroup>
-                    
-                    <optgroup label="🏝️ Other Areas">
-                      <option value="Palm Jumeirah">Palm Jumeirah</option>
-                      <option value="Dubai Hills Estate">Dubai Hills Estate</option>
-                      <option value="Al Wasl">Al Wasl</option>
-                      <option value="Mirdif">Mirdif</option>
-                      <option value="Nad Al Sheba">Nad Al Sheba</option>
-                      <option value="Al Warqa">Al Warqa</option>
-                      <option value="Al Mizhar">Al Mizhar</option>
-                      <option value="Festival City">Festival City</option>
-                      <option value="Dubai Creek Harbour">Dubai Creek Harbour</option>
-                      <option value="Meydan">Meydan</option>
-                      <option value="Umm Suqeim">Umm Suqeim</option>
-                      <option value="Al Safa">Al Safa</option>
-                      <option value="Al Satwa">Al Satwa</option>
-                      <option value="Karama">Karama</option>
-                      <option value="Muhaisnah">Muhaisnah</option>
+                      <option value="Jumeirah">Jumeirah</option>
+                      <option value="Al Karama">Al Karama</option>
+                      <option value="Satwa">Satwa</option>
+                      <option value="Dubai Festival City">Dubai Festival City</option>
                     </optgroup>
                   </select>
                 </div>
@@ -966,6 +934,27 @@ export default function CompanyManagement() {
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <Star size={16} />
+                    Mark as Hope
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, isFavorite: !formData.isFavorite})}
+                      className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
+                        formData.isFavorite 
+                          ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      <Star size={20} className={formData.isFavorite ? 'fill-white' : ''} />
+                      {formData.isFavorite ? 'Lets Hope' : 'Not Hope'}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex gap-3 pt-4">
                   <button
                     type="submit"
@@ -995,6 +984,7 @@ export default function CompanyManagement() {
             <table className="w-full">
               <thead className="bg-gradient-to-r from-slate-100 to-slate-200">
                 <tr>
+                  <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Hope</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">S.No</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Company Name</th>
                   <th className="px-4 py-4 text-left text-sm font-bold text-gray-700">Details</th>
@@ -1011,6 +1001,18 @@ export default function CompanyManagement() {
               <tbody className="divide-y divide-gray-200">
                 {filteredCompanies.map((company) => (
                   <tr key={company.id} className="hover:bg-blue-50 transition-colors">
+                    <td className="px-4 py-4">
+                      <button
+                        onClick={() => toggleFavorite(company)}
+                        className="hover:scale-110 transition-transform"
+                        title={company.isFavorite ? 'Remove from Hope' : 'Add to Hope'}
+                      >
+                        <Star 
+                          size={20} 
+                          className={company.isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}
+                        />
+                      </button>
+                    </td>
                     <td className="px-4 py-4 text-sm font-medium text-gray-900">{company.serialNo}</td>
                     <td className="px-4 py-4 text-sm font-semibold text-gray-900">{company.companyName}</td>
                     <td className="px-4 py-4 text-sm text-gray-600 max-w-xs truncate">{company.companyDetail}</td>
@@ -1123,9 +1125,20 @@ export default function CompanyManagement() {
         {/* Cards - Mobile */}
         <div className="lg:hidden space-y-4">
           {filteredCompanies.map((company) => (
-            <div key={company.id} className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-blue-500">
+            <div key={company.id} className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-blue-500 relative">
+              <button
+                onClick={() => toggleFavorite(company)}
+                className="absolute top-4 right-4 hover:scale-110 transition-transform"
+                title={company.isFavorite ? 'Remove from Hope' : 'Add to Hope'}
+              >
+                <Star 
+                  size={24} 
+                  className={company.isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}
+                />
+              </button>
+              
               <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
+                <div className="flex-1 pr-10">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="bg-slate-700 text-white text-xs font-bold px-2 py-1 rounded">
                       #{company.serialNo}
