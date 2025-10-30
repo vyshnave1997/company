@@ -708,7 +708,7 @@ const filterAndSearch = () => {
               
               <button
                 onClick={loadCompanies}
-                className="px-4 py-3 bg-yellow-800 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-4 py-3 bg-yellow-800 hover:bg-yellow-500 rounded-lg transition-colors"
                 title="Refresh"
               >
                 <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
