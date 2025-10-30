@@ -17,7 +17,8 @@ export default function CompanyManagement() {
     mailSent: 0,
     interviewed: 0,
     pending: 0,
-    favorites: 0
+    favorites: 0,
+    visited: 0
   });
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -92,11 +93,12 @@ export default function CompanyManagement() {
       mailSent: data.filter(c => c.mailSent === 'Sent').length,
       interviewed: data.filter(c => c.interview === 'Selected').length,
       pending: data.filter(c => c.mailSent === 'Pending').length,
-      favorites: data.filter(c => c.isFavorite === true).length
+      favorites: data.filter(c => c.isFavorite === true).length,
+      visited: data.filter(c => c.visitedOffice === 'Yes').length
     });
   };
 
-  const filterAndSearch = () => {
+const filterAndSearch = () => {
     let filtered = companies;
 
     if (filterStatus === 'sent') {
@@ -111,6 +113,8 @@ export default function CompanyManagement() {
       filtered = filtered.filter(c => c.interview === 'Rejected');
     } else if (filterStatus === 'favorites') {
       filtered = filtered.filter(c => c.isFavorite === true);
+    } else if (filterStatus === 'visited') {
+      filtered = filtered.filter(c => c.visitedOffice === 'Yes');
     }
 
     if (searchTerm) {
@@ -124,7 +128,6 @@ export default function CompanyManagement() {
 
     setFilteredCompanies(filtered);
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -608,7 +611,7 @@ export default function CompanyManagement() {
 
       {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
               <div>
@@ -658,6 +661,16 @@ export default function CompanyManagement() {
               <Star className="text-yellow-500 fill-yellow-500" size={32} />
             </div>
           </div>
+                  <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-cyan-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Visited</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.visited}</p>
+              </div>
+              <MapPin className="text-cyan-500" size={32} />
+            </div>
+          </div>
+
         </div>
 
         {/* Search and Filter Bar */}
@@ -677,7 +690,7 @@ export default function CompanyManagement() {
             <div className="flex gap-2">
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <select
+               <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                   className="pl-10 pr-8 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none appearance-none bg-white cursor-pointer text-gray-900"
@@ -689,6 +702,7 @@ export default function CompanyManagement() {
                   <option value="not-sent">Not Sent</option>
                   <option value="selected">Selected</option>
                   <option value="rejected">Rejected</option>
+                  <option value="visited">Visited</option>
                 </select>
               </div>
               
