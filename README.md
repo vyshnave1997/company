@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+Here’s a clean and professional **README.md** file for your **Company Management** project based on your `package.json` and the dashboard details you provided 👇
 
-## Getting Started
+---
 
-First, run the development server:
+# 🏢 Company Management System
+
+A **Next.js** application for managing and tracking company data efficiently — including company details, email status, interview progress, and more. Built with **React 19**, **MongoDB**, and **TailwindCSS 4**.
+
+---
+
+## 🚀 Features
+
+### 📊 Dashboard Overview
+
+* **Total Companies:** 72
+* **Mail Sent:** 11
+* **Interviewed:** 0
+* **Pending:** 0
+* **Hope:** 4
+* **Visited:** 0
+
+### 🧩 Core Modules
+
+* **Add Company** – Add new company records with relevant details.
+* **Company Database** – Centralized view of all stored companies with filtering options.
+* **Send Emails** – Bulk or single email functionality to communicate with companies.
+* **Export Data** – Export company data for external reporting or analysis.
+
+---
+
+## 🧠 Tech Stack
+
+| Technology        | Description                                 |
+| ----------------- | ------------------------------------------- |
+| **Next.js 16**    | Framework for full-stack React applications |
+| **React 19**      | Front-end UI library                        |
+| **MongoDB**       | NoSQL database for company data storage     |
+| **TailwindCSS 4** | Utility-first CSS framework                 |
+| **Lucide React**  | Icon library for a clean modern UI          |
+| **ESLint**        | Code quality and linting tool               |
+
+---
+
+## 🗄️ Example Data (Preview)
+
+| Hope | S.No | Company Name                                | Role                                        | Website         | Location | Mail Status | Interview | Visited |
+| ---- | ---- | ------------------------------------------- | ------------------------------------------- | --------------- | -------- | ----------- | --------- | ------- |
+| ✅    | 0150 | Ares Administrative Services (DIFC) Limited | Vice President, Wealth Management Solutions | [Visit Site](#) | AE       | No Idea     | No        | ❌       |
+| ✅    | —    | GTECH Information Technology                | Front-End Developer                         | [Visit Site](#) | AE       | No Idea     | No        | ❌       |
+| ✅    | —    | beBeeFrontend                               | Senior Front End Application Developer      | [Visit Site](#) | AE       | No Idea     | No        | ❌       |
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1️⃣ Clone the Repository
+
+```bash
+git clone https://github.com/your-username/company-data.git
+cd company-data
+```
+
+### 2️⃣ Install Dependencies
+
+```bash
+npm install
+```
+
+### 3️⃣ Set Up Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```bash
+MONGODB_URI=your_mongodb_connection_string
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
+
+### 4️⃣ Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Your app will be live at **[http://localhost:3000](http://localhost:3000)**
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📬 Scripts
 
-## Learn More
+| Command         | Description                      |
+| --------------- | -------------------------------- |
+| `npm run dev`   | Start development server         |
+| `npm run build` | Build the project for production |
+| `npm run start` | Start the production server      |
+| `npm run lint`  | Run ESLint checks                |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧾 License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project is licensed under the **MIT License**.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 👨‍💻 Author
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Vyshnave K**
+📧 [Add your email/contact link here]
+🌐 [Add your website or LinkedIn profile here]
+
+---
+
+Would you like me to **add screenshots or UI preview sections** (e.g., Dashboard image placeholders) to make this README more polished and LinkedIn-ready?
